@@ -9,6 +9,8 @@ var ctx;
 var objects = new Array();
 var constraints = new Array();
 
+var h = 0.01;
+
 function Constraint() {
     this.target1 = 0;
     this.target2 = 0;
@@ -16,10 +18,32 @@ function Constraint() {
     this.distance = 10;
     this.diffx = 0;
     this.diffy = 0;
+    this.jacboitmp = new Array();
+    this.jacboitmp2 = new Array();
     this.calculateVector = function() {
         this.diffx = this.target1.x - this.target2.x;
         this.diffy = this.target1.y - this.target2.y;
     }
+    this.func = function(x1,y1,x2,y2) {
+             var xdiff = x1 - x2;
+             var ydiff = y1 - y2;
+             return Math.sqrt(xdiff*xdiff + ydiff*ydiff) - distance;
+         }
+
+    this.jacobi = function(x1,y1,x2,y2,funct) {
+             jacboitmp[0] = (funct(x1+h,y1,x2,y2) - funct(x1,y1,x2,y2))/h;
+             jacboitmp[1] = (funct(x1,y1+h,x2,y2) - funct(x1,y1,x2,y2))/h;
+             jacboitmp[2] = (funct(x1,y1,x2+h,y2) - funct(x1,y1,x2,y2))/h;
+             jacboitmp[3] = (funct(x1,y1,x2,y2+h) - funct(x1,y1,x2,y2))/h;
+             return jacboitmp;
+         }
+    this.jacobidbl = function(x1,y1,x2,y2,funct) {
+             jacboitmp2[0] = (jacobi(x1+h,y1,x2,y2,funct) - jacobi(x1,y1,x2,y2,funct))/h;
+             jacboitmp2[1] = (jacobi(x1,y1+h,x2,y2,funct) - jacobi(x1,y1,x2,y2,funct))/h;
+             jacboitmp2[2] = (jacobi(x1,y1,x2+h,y2,funct) - jacobi(x1,y1,x2,y2,funct))/h;
+             jacboitmp2[3] = (jacobi(x1,y1,x2,y2+h,funct) - jacobi(x1,y1,x2,y2,funct))/h;
+             return jacboitmp2;
+         }
 }
 
 function Ball() {
@@ -122,40 +146,7 @@ function animate(){
         object.advance(dt);
     }
     // fix constraints
-    var worstConstraint = 1;
-    var mu = 2; // TODO calculate using mass
-    var iteration = 0;
-    while(worstConstraint > 10e-5 && iteration < 1000) {
-        worstConstraint = 0;
-        for(i = 0; i < constraints.length; i++) {
-            var constraint = constraints[i];
-            var diffx = constraint.target1.x - constraint.target2.x;
-            var diffy = constraint.target1.y - constraint.target2.y;
-            var distsq = diffx*diffx + diffy*diffy;
-            var dist = Math.sqrt(distsq);
-//            console.log(dist);
-            var constForcex = (constraint.distance*constraint.distance - distsq)/(diffx * constraint.diffx + diffy*constraint.diffy) * diffx;
-            var constForcey = (constraint.distance*constraint.distance - distsq)/(diffx * constraint.diffx + diffy*constraint.diffy) * diffy;
-//            var constForcex = -0.1*k * (dist - constraint.distance) * diffx / dist;
-//            var constForcey = -0.1*k * (dist - constraint.distance) * diffy / dist;
-//            constraint.target1.velx = constraint.target1.velx - constForcex * dt;
-//            constraint.target1.vely = constraint.target1.vely + constForcey * dt;
-            if(!constraint.target1Sticky) {
-                constraint.target1.x = constraint.target1.x + constForcex * dt;
-                constraint.target1.y = constraint.target1.y + constForcey * dt;
-            }
-            constraint.target2.x = constraint.target2.x - constForcex * dt;
-            constraint.target2.y = constraint.target2.y - constForcey * dt;
-//            constraint.target1.x = constraint.target1.x + constraint.target1.velx * dt;
-//            constraint.target1.y = constraint.target1.y + constraint.target1.vely * dt;
-//            constraint.target2.x = constraint.target2.x + constraint.target2.velx * dt;
-//            constraint.target2.y = constraint.target2.y + constraint.target2.vely * dt;
-            if(Math.abs(Math.sqrt(distsq) - constraint.distance) > worstConstraint) {
-                worstConstraint = Math.abs(Math.sqrt(distsq) - constraint.distance);
-            }
-        }
-        iteration++;
-    }
+
 
     // clear
     ctx.fillStyle = "rgba(255,255,255,0.8)";
