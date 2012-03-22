@@ -106,13 +106,13 @@ window.onload = function(){
             
             // Add items to scene
             marker = new Ball();
-            marker.x = 200;
+            marker.x = 0;
             marker.y = 0;
             objects.push(marker);
             // initialize stage
             var ball = new Ball();
-            ball.x = 90;
-            ball.y = 100;
+            ball.x = 200;
+            ball.y = 0;
             ball.vely = 0;
             ball.velx = 0;
             objects.push(ball);
@@ -126,7 +126,7 @@ window.onload = function(){
             var constraint = new Constraint();
             constraint.target1 = marker;
             constraint.target2 = ball;
-            constraint.distance = 40;
+            constraint.distance = 200;
             constraint.calculateVector();
             //            constraint.target1Sticky = true;
             constraints.push(constraint);
@@ -167,26 +167,28 @@ function animate(){
         var pos2y = constraint.target2.y;
         var diffx = pos1x - pos2x;
         var diffy = pos1y - pos2y;
-        var dist = Math.sqrt(diffx*diffx - diffy*diffy);
-//        var force = -(vel1x*vel1x + vel1y*vel1y + vel2x*vel2x + vel2y*vel2y) / (diffx*diffx + diffy*diffy);
-//        var forcex = 0;
-//        var forcey = 0;
-//        if(dist != 0) {
-//            forcex = force*diffx/dist;
-//            forcey = force*diffy/dist;
-//        }
-        var force = (- (constraint.target1.accx * pos1x + constraint.target1.accy * pos1y) - (vel1x * vel1x + vel1y * vel1y)) / (pos1x * pos1x + pos1y*pos1y);
+        var distsquared = diffx*diffx + diffy*diffy;
+        var dist = Math.sqrt(distsquared);
+        var force = -(vel1x*vel1x + vel1y*vel1y - vel2x*vel2x - vel2y*vel2y) / (distsquared);
+        var forcex = 0;
+        var forcey = 0;
+        if(dist != 0) {
+            forcex = force*diffx;
+            forcey = force*diffy;
+        }
+//        var force = (- (constraint.target1.accx * pos1x + constraint.target1.accy * pos1y) - (vel1x * vel1x + vel1y * vel1y)) / (pos1x * pos1x + pos1y*pos1y);
 //        force -= 0.1 * (pos1x * pos1x + pos1y * pos1y - 10000);
 //        force -= 0.1 * (1/2 * (vel1x * pos1x + vel1y * pos1y));
-        var forcex = pos1x * force;
-        var forcey = pos1y * force;
-        var springf = 100* (Math.sqrt(pos1x * pos1x + pos1y * pos1y) - 200)
-        forcex += -springf * pos1x / Math.sqrt(pos1x*pos1x + pos1y*pos1y);
-        forcey += -springf * pos1y / Math.sqrt(pos1x*pos1x + pos1y*pos1y);
+//        var forcex = pos1x * force;
+//        var forcey = pos1y * force;
+        var offset = dist - constraint.distance;
+        var springf = 100* offset;
+//        forcex += -springf * diffx / dist;
+//        forcey += -springf * diffy / dist;
         constraint.target1.accx += forcex;
         constraint.target1.accy += forcey;
-//        constraint.target2.accx -= forcex;
-//        constraint.target2.accy -= forcey;
+        constraint.target2.accx -= forcex;
+        constraint.target2.accy -= forcey;
     }
     // advance ahead
     for(i = 0; i < objects.length; i++) {
