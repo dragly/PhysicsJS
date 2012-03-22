@@ -21,29 +21,29 @@ function Constraint() {
     this.jacboitmp = new Array();
     this.jacboitmp2 = new Array();
     this.calculateVector = function() {
-        this.diffx = this.target1.x - this.target2.x;
-        this.diffy = this.target1.y - this.target2.y;
-    }
-    this.func = function(x1,y1,x2,y2) {
-             var xdiff = x1 - x2;
-             var ydiff = y1 - y2;
-             return Math.sqrt(xdiff*xdiff + ydiff*ydiff) - distance;
+             this.diffx = this.target1.x - this.target2.x;
+             this.diffy = this.target1.y - this.target2.y;
          }
+    //    this.func = function(x1,y1,x2,y2) {
+    //             var xdiff = x1 - x2;
+    //             var ydiff = y1 - y2;
+    //             return Math.sqrt(xdiff*xdiff + ydiff*ydiff) - distance;
+    //         }
 
-    this.jacobi = function(x1,y1,x2,y2,funct) {
-             jacboitmp[0] = (funct(x1+h,y1,x2,y2) - funct(x1,y1,x2,y2))/h;
-             jacboitmp[1] = (funct(x1,y1+h,x2,y2) - funct(x1,y1,x2,y2))/h;
-             jacboitmp[2] = (funct(x1,y1,x2+h,y2) - funct(x1,y1,x2,y2))/h;
-             jacboitmp[3] = (funct(x1,y1,x2,y2+h) - funct(x1,y1,x2,y2))/h;
-             return jacboitmp;
-         }
-    this.jacobidbl = function(x1,y1,x2,y2,funct) {
-             jacboitmp2[0] = (jacobi(x1+h,y1,x2,y2,funct) - jacobi(x1,y1,x2,y2,funct))/h;
-             jacboitmp2[1] = (jacobi(x1,y1+h,x2,y2,funct) - jacobi(x1,y1,x2,y2,funct))/h;
-             jacboitmp2[2] = (jacobi(x1,y1,x2+h,y2,funct) - jacobi(x1,y1,x2,y2,funct))/h;
-             jacboitmp2[3] = (jacobi(x1,y1,x2,y2+h,funct) - jacobi(x1,y1,x2,y2,funct))/h;
-             return jacboitmp2;
-         }
+    //    this.jacobi = function(x1,y1,x2,y2,funct) {
+    //             jacboitmp[0] = (funct(x1+h,y1,x2,y2) - funct(x1,y1,x2,y2))/h;
+    //             jacboitmp[1] = (funct(x1,y1+h,x2,y2) - funct(x1,y1,x2,y2))/h;
+    //             jacboitmp[2] = (funct(x1,y1,x2+h,y2) - funct(x1,y1,x2,y2))/h;
+    //             jacboitmp[3] = (funct(x1,y1,x2,y2+h) - funct(x1,y1,x2,y2))/h;
+    //             return jacboitmp;
+    //         }
+    //    this.jacobidbl = function(x1,y1,x2,y2,funct) {
+    //             jacboitmp2[0] = (jacobi(x1+h,y1,x2,y2,funct) - jacobi(x1,y1,x2,y2,funct))/h;
+    //             jacboitmp2[1] = (jacobi(x1,y1+h,x2,y2,funct) - jacobi(x1,y1,x2,y2,funct))/h;
+    //             jacboitmp2[2] = (jacobi(x1,y1,x2+h,y2,funct) - jacobi(x1,y1,x2,y2,funct))/h;
+    //             jacboitmp2[3] = (jacobi(x1,y1,x2,y2+h,funct) - jacobi(x1,y1,x2,y2,funct))/h;
+    //             return jacboitmp2;
+    //         }
 }
 
 function Ball() {
@@ -53,6 +53,8 @@ function Ball() {
     this.vely = 0;
     this.constraints = new Array();
     this.isDragged = false;
+    this.accx = 0;
+    this.accy = 0;
     this.draw = function(ctx) {
              ctx.fillStyle="#FF0000";
              //    ctx.fillRect(0,y,50,50);
@@ -61,31 +63,37 @@ function Ball() {
              ctx.closePath();
              ctx.fill();
          }
+    this.resetForces = function() {
+             this.accx = 0;
+             this.accy = 0;
+         }
+    this.calculateForces = function() {
+             this.accy += grav;
+//             this.accx = this.accx - this.velx * 0.1;
+//             this.accy = this.accy - this.vely * 0.1;
+         }
+
     this.advance = function(dt) {
-        if(!this.isDragged) {
-            var accx = 0;
-            var accy = 0;
-            accy += grav;
-            accx = accx - this.velx * 0.1;
-            accy = accy - this.vely * 0.1;
-            if(this.y > 400) {
-                accy = accy - 100*this.y;
-            }
-            this.velx = this.velx + accx * dt;
-            this.vely = this.vely + accy * dt;
-            this.x = this.x + this.velx * dt;
-            this.y = this.y + this.vely * dt;
-        }
-    }
+             if(!this.isDragged) {
+                 if(this.y > 400) {
+                     this.vely = - this.vely;
+                     this.y = 400;
+                 }
+                 this.velx = this.velx + this.accx * dt;
+                 this.vely = this.vely + this.accy * dt;
+                 this.x = this.x + this.velx * dt;
+                 this.y = this.y + this.vely * dt;
+             }
+         }
     this.isClicked = function(x,y) {
-        var diffx = x - this.x;
-        var diffy = y - this.y;
-        var distance = Math.sqrt(diffx*diffx + diffy*diffy);
-        if(distance < 30)
-            return true;
-        else
-            return false; 
-    }
+             var diffx = x - this.x;
+             var diffy = y - this.y;
+             var distance = Math.sqrt(diffx*diffx + diffy*diffy);
+             if(distance < 30)
+                 return true;
+             else
+                 return false;
+         }
 }
 
 window.onload = function(){
@@ -98,8 +106,8 @@ window.onload = function(){
             
             // Add items to scene
             marker = new Ball();
-            marker.x = 50;
-            marker.y = 100;
+            marker.x = 200;
+            marker.y = 0;
             objects.push(marker);
             // initialize stage
             var ball = new Ball();
@@ -120,15 +128,15 @@ window.onload = function(){
             constraint.target2 = ball;
             constraint.distance = 40;
             constraint.calculateVector();
-//            constraint.target1Sticky = true;
+            //            constraint.target1Sticky = true;
             constraints.push(constraint);
 
-            var constraint2 = new Constraint();
-            constraint2.target1 = ball;
-            constraint2.target2 = ball2;
-            constraint2.distance = 80;
-            constraint2.calculateVector();
-            constraints.push(constraint2);
+            //            var constraint2 = new Constraint();
+            //            constraint2.target1 = ball;
+            //            constraint2.target2 = ball2;
+            //            constraint2.distance = 80;
+            //            constraint2.calculateVector();
+            //            constraints.push(constraint2);
             // start animations
             animate();
         };
@@ -140,17 +148,62 @@ function animate(){
     var dt = 0.01;
     var object;
     var i;
-    // update
+    // reset and calculate forces
+    for(i = 0; i < objects.length; i++) {
+        object = objects[i];
+        object.resetForces();
+        object.calculateForces();
+    }
+    // calculate constraint forces
+    for(i in constraints) {
+        var constraint = constraints[i];
+        var vel1x = constraint.target1.velx;
+        var vel1y = constraint.target1.vely;
+        var vel2x = constraint.target2.velx;
+        var vel2y = constraint.target2.vely;
+        var pos1x = constraint.target1.x;
+        var pos1y = constraint.target1.y;
+        var pos2x = constraint.target2.x;
+        var pos2y = constraint.target2.y;
+        var diffx = pos1x - pos2x;
+        var diffy = pos1y - pos2y;
+        var dist = Math.sqrt(diffx*diffx - diffy*diffy);
+//        var force = -(vel1x*vel1x + vel1y*vel1y + vel2x*vel2x + vel2y*vel2y) / (diffx*diffx + diffy*diffy);
+//        var forcex = 0;
+//        var forcey = 0;
+//        if(dist != 0) {
+//            forcex = force*diffx/dist;
+//            forcey = force*diffy/dist;
+//        }
+        var force = (- (constraint.target1.accx * pos1x + constraint.target1.accy * pos1y) - (vel1x * vel1x + vel1y * vel1y)) / (pos1x * pos1x + pos1y*pos1y);
+//        force -= 0.1 * (pos1x * pos1x + pos1y * pos1y - 10000);
+//        force -= 0.1 * (1/2 * (vel1x * pos1x + vel1y * pos1y));
+        var forcex = pos1x * force;
+        var forcey = pos1y * force;
+        var springf = 100* (Math.sqrt(pos1x * pos1x + pos1y * pos1y) - 200)
+        forcex += -springf * pos1x / Math.sqrt(pos1x*pos1x + pos1y*pos1y);
+        forcey += -springf * pos1y / Math.sqrt(pos1x*pos1x + pos1y*pos1y);
+        constraint.target1.accx += forcex;
+        constraint.target1.accy += forcey;
+//        constraint.target2.accx -= forcex;
+//        constraint.target2.accy -= forcey;
+    }
+    // advance ahead
     for(i = 0; i < objects.length; i++) {
         object = objects[i];
         object.advance(dt);
     }
-    // fix constraints
-
 
     // clear
     ctx.fillStyle = "rgba(255,255,255,0.8)";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    ctx.fillStyle="#00FF00";
+    //    ctx.fillRect(0,y,50,50);
+    ctx.beginPath();
+    ctx.arc(0, 0, 200, 0, Math.PI*2, true);
+    ctx.closePath();
+    ctx.fill();
 
     // draw
     for(i = 0; i < objects.length; i++) {
@@ -176,7 +229,7 @@ window.requestAnimFrame = (function(callback){
                                    window.setTimeout(callback, 1000 / 100);
                                };
                            })();
-                           
+
 var isDragging = 0;
 
 function canvasMouseMove(e) {
