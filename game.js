@@ -1,5 +1,5 @@
 var frame = 0;
-var grav = 500;
+var grav = 80;
 var marker;
 var k = 100;
 
@@ -10,54 +10,45 @@ var objects = new Array();
 var constraints = new Array();
 
 var h = 0.01;
+var dt = 0.001;
+var springDamp = 0.00001;
 
-function Constraint() {
-    this.target1 = 0;
-    this.target2 = 0;
-    this.target1Sticky = false;
-    this.distance = 10;
-    this.diffx = 0;
-    this.diffy = 0;
-    this.jacboitmp = new Array();
-    this.jacboitmp2 = new Array();
-    this.calculateVector = function() {
-        this.diffx = this.target1.x - this.target2.x;
-        this.diffy = this.target1.y - this.target2.y;
-    }
-    this.func = function(x1,y1,x2,y2) {
-             var xdiff = x1 - x2;
-             var ydiff = y1 - y2;
-             return Math.sqrt(xdiff*xdiff + ydiff*ydiff) - distance;
-         }
+// potential
+// TODO Use squared distances / loose the sqrt
+// TODO Add energy by clicking on nothing
 
-    this.jacobi = function(x1,y1,x2,y2,funct) {
-             jacboitmp[0] = (funct(x1+h,y1,x2,y2) - funct(x1,y1,x2,y2))/h;
-             jacboitmp[1] = (funct(x1,y1+h,x2,y2) - funct(x1,y1,x2,y2))/h;
-             jacboitmp[2] = (funct(x1,y1,x2+h,y2) - funct(x1,y1,x2,y2))/h;
-             jacboitmp[3] = (funct(x1,y1,x2,y2+h) - funct(x1,y1,x2,y2))/h;
-             return jacboitmp;
-         }
-    this.jacobidbl = function(x1,y1,x2,y2,funct) {
-             jacboitmp2[0] = (jacobi(x1+h,y1,x2,y2,funct) - jacobi(x1,y1,x2,y2,funct))/h;
-             jacboitmp2[1] = (jacobi(x1,y1+h,x2,y2,funct) - jacobi(x1,y1,x2,y2,funct))/h;
-             jacboitmp2[2] = (jacobi(x1,y1,x2+h,y2,funct) - jacobi(x1,y1,x2,y2,funct))/h;
-             jacboitmp2[3] = (jacobi(x1,y1,x2,y2+h,funct) - jacobi(x1,y1,x2,y2,funct))/h;
-             return jacboitmp2;
-         }
-}
+var potscale = 7;
+
+var falloff = 1000;
+var eqmin = 30;
+var eqmax = 80;
+
+// y = e^(-ax) ( bx^2 - cx + d)
+
+// a
+var invfactor = 0.000001*falloff*falloff*falloff*falloff;
+// d
+var corestrength = 1500;
+// c
+var distfactor = corestrength * (eqmax*eqmax - eqmin * eqmin) / (eqmin*eqmax*eqmax - eqmax * eqmin * eqmin);
+// b
+var distsqfactor = (distfactor * eqmin - corestrength) / (eqmin*eqmin);
+
+console.log("(" + invfactor + "/x^4)(" + distsqfactor + "x^2 - " + distfactor + "x + " + corestrength + " )");
 
 function Ball() {
     this.x = 0;
     this.y = 0;
     this.velx = 0;
     this.vely = 0;
+    this.fillStyle = "rgba(255,0,0,1)";
     this.constraints = new Array();
     this.isDragged = false;
     this.draw = function(ctx) {
-             ctx.fillStyle="#FF0000";
+             ctx.fillStyle=this.fillStyle;
              //    ctx.fillRect(0,y,50,50);
              ctx.beginPath();
-             ctx.arc(this.x, this.y, 10, 0, Math.PI*2, true);
+             ctx.arc(this.x, this.y, 5, 0, Math.PI*2, true);
              ctx.closePath();
              ctx.fill();
          }
@@ -66,11 +57,44 @@ function Ball() {
             var accx = 0;
             var accy = 0;
             accy += grav;
-            accx = accx - this.velx * 0.1;
-            accy = accy - this.vely * 0.1;
-            if(this.y > 400) {
-                accy = accy - 100*this.y;
+            // damping
+            accx = accx - this.velx * 0.2;
+            accy = accy - this.vely * 0.2;
+            if(this.y > ctx.canvas.height - 10) {
+                this.vely = -this.vely;
+                this.y = ctx.canvas.height - 10;
             }
+            if(this.x > ctx.canvas.width - 10) {
+                this.velx = -this.velx;
+                this.x = ctx.canvas.width - 10;
+            }
+            if(this.x < 10) {
+                this.velx = -this.velx;
+                this.x = 10;
+            }
+            if(this.y < 10) {
+                this.vely = -this.vely;
+                this.y = 10;
+            }
+            for(i in objects) {
+                var object = objects[i];
+                if(object != this) {
+                    var diffx = this.x - object.x;
+                    var diffy = this.y - object.y;
+                    var distsquared = diffx * diffx + diffy*diffy
+                    if(distsquared < 40000) {
+                        var distance = Math.sqrt(distsquared);
+                        var force = potscale * invfactor / (distsquared*distsquared) *(distsqfactor*distsquared - distfactor* distance + corestrength);
+                        if(force > 500) {
+                            force = 500;
+                        }
+
+                        accx += force * diffx / distance;
+                        accy += force * diffy / distance;
+                    }
+                }
+            }
+
             this.velx = this.velx + accx * dt;
             this.vely = this.vely + accy * dt;
             this.x = this.x + this.velx * dt;
@@ -81,7 +105,7 @@ function Ball() {
         var diffx = x - this.x;
         var diffy = y - this.y;
         var distance = Math.sqrt(diffx*diffx + diffy*diffy);
-        if(distance < 30)
+        if(distance < 10)
             return true;
         else
             return false; 
@@ -95,40 +119,24 @@ window.onload = function(){
             canvas.addEventListener("mousemove",canvasMouseMove);
             canvas.addEventListener("mousedown",canvasMouseDown);
             canvas.addEventListener("mouseup",canvasMouseUp);
-            
+
             // Add items to scene
-            marker = new Ball();
-            marker.x = 50;
-            marker.y = 100;
-            objects.push(marker);
+//            objects.push(marker);
             // initialize stage
-            var ball = new Ball();
-            ball.x = 90;
-            ball.y = 100;
-            ball.vely = 0;
-            ball.velx = 0;
-            objects.push(ball);
-            var ball2 = new Ball();
-            ball2.x = 90;
-            ball2.y = 180;
-            ball2.vely = 0;
-            ball2.velx = 0;
-            objects.push(ball2);
+            for(var i = 0; i < 150; i++) {
+                var ball = new Ball();
+                ball.x = Math.floor(Math.random()*ctx.canvas.width);
+                ball.y = Math.floor(Math.random()*ctx.canvas.height);
+                ball.fillStyle = "rgba(" + Math.floor(100 + Math.random()*150) + "," + Math.floor(100 + Math.random()*150) + "," + Math.floor(100 + Math.random()*150) + ",1)";
+                objects.push(ball);
+            }
+//            var ball2 = new Ball();
+//            ball2.x = 90;
+//            ball2.y = 180;
+//            ball2.vely = 0;
+//            ball2.velx = 0;
+//            objects.push(ball2);
 
-            var constraint = new Constraint();
-            constraint.target1 = marker;
-            constraint.target2 = ball;
-            constraint.distance = 40;
-            constraint.calculateVector();
-//            constraint.target1Sticky = true;
-            constraints.push(constraint);
-
-            var constraint2 = new Constraint();
-            constraint2.target1 = ball;
-            constraint2.target2 = ball2;
-            constraint2.distance = 80;
-            constraint2.calculateVector();
-            constraints.push(constraint2);
             // start animations
             animate();
         };
@@ -137,7 +145,6 @@ function animate(){
     canvas = document.getElementById("myCanvas");
     ctx = canvas.getContext("2d");
 
-    var dt = 0.01;
     var object;
     var i;
     // update
@@ -157,7 +164,6 @@ function animate(){
         object = objects[i];
         object.draw(ctx);
     }
-    marker.draw(ctx);
 
     // request new frame
     requestAnimFrame(function(){
@@ -203,12 +209,14 @@ function canvasMouseDown(e) {
     getCursorPosition(e);
     var x = mousePos[0];
     var y = mousePos[1];
+    var hasDrag = false;
     for(var i in objects) {
         var object = objects[i];
         console.log(object.x);
-        if(object.isClicked(x,y)) {
+        if(object.isClicked(x,y) && !hasDrag) {
             isDragging = object;
             object.isDragged = true;
+            hasDrag= true;
         }
     }
 }
