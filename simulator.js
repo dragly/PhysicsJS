@@ -1,16 +1,21 @@
-var simulator;
+/*
+    Copyright 2012 Svenn-Arne Dragly
 
-window.onload = function(){
-            simulator = new Simulator();
-            for(var i = 0; i < 20; i++) {
-                var ball = new Ball(simulator);
-                ball.x = Math.floor(Math.random()*simulator.ctx.canvas.width);
-                ball.y = Math.floor(Math.random()*simulator.ctx.canvas.height);
-                ball.fillStyle = "rgba(" + Math.floor(100 + Math.random()*150) + "," + Math.floor(100 + Math.random()*150) + "," + Math.floor(100 + Math.random()*150) + ",1)";
-                simulator.objects.push(ball);
-                ball.resetForces();
-            }
-        };
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU Affero General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU Affero General Public License for more details.
+
+    You should have received a copy of the GNU Affero General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+var simulator;
 
 window.requestAnimFrame = (function(callback){
                                return window.requestAnimationFrame ||
@@ -24,25 +29,26 @@ window.requestAnimFrame = (function(callback){
                            })();
 
 function Simulator() {
-    this.dt = 0.005;
-    this.objects = new Array();
-    this.mousePos = new Array();
-    this.a = 10;
-    this.isDragging = 0;
-
-    this.canvas = document.getElementById("myCanvas");
-    this.ctx = this.canvas.getContext("2d");
-    // Set up mouse data
-    this.canvas.addEventListener("mousemove",this.canvasMouseMove);
-    this.canvas.addEventListener("mousedown",this.canvasMouseDown);
-    this.canvas.addEventListener("mouseup",this.canvasMouseUp);
-
-    // Add items to scene
-    //            objects.push(marker);
-    // initialize stage
-
-    this.animate();
 }
+
+Simulator.prototype.init = function() {
+            this.dt = 0.005;
+            this.objects = new Array();
+            this.mousePos = new Array();
+            this.a = 10;
+            this.isDragging = 0;
+
+            this.canvas = document.getElementById("myCanvas");
+            this.ctx = this.canvas.getContext("2d");
+            // Set up mouse data
+            this.canvas.addEventListener("mousemove",this.canvasMouseMove);
+            this.canvas.addEventListener("mousedown",this.canvasMouseDown);
+            this.canvas.addEventListener("mouseup",this.canvasMouseUp);
+
+            // Add items to scene
+            //            objects.push(marker);
+            // initialize stage
+        }
 
 Simulator.prototype.animate = function() {
             var object;
@@ -76,7 +82,10 @@ Simulator.prototype.animate = function() {
                 object = this.objects[i];
                 object.draw();
             }
+            this.requestAnimFrame();
+        }
 
+Simulator.prototype.requestAnimFrame = function() {
             // request new frame
             window.requestAnimFrame(function(){
                                         simulator.animate();
@@ -144,6 +153,6 @@ Simulator.prototype.getCursorPosition = function(e) {
             y -= simulator.canvas.offsetTop;
 
             simulator.mousePos[0] = x;
-            simulator.mousePos[1] = y;
+            simulator.mousePos[1] = simulator.ctx.canvas.height - y;
         }
 

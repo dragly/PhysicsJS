@@ -1,5 +1,22 @@
+/*
+    Copyright 2012 Svenn-Arne Dragly
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU Affero General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU Affero General Public License for more details.
+
+    You should have received a copy of the GNU Affero General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
 var frame = 0;
-var grav = 100;
+var grav = -100;
 var k = 100;
 var drawForces = true;
 
@@ -14,7 +31,7 @@ ForceType = {
     Springs: "springs"
 }
 
-var forceType = ForceType.Springs;
+var forceType = ForceType.LennardJones;
 
 // potential
 // TODO Use squared distances / loose the sqrt
@@ -48,7 +65,7 @@ Ball.prototype.constructor = Ball;
 Ball.prototype.draw = function() {
             this.ctx.fillStyle=this.fillStyle;
             this.ctx.beginPath();
-            this.ctx.arc(this.x, this.y, 5, 0, Math.PI*2, true);
+            this.ctx.arc(this.x, this.ctx.canvas.height - this.y, 5, 0, Math.PI*2, true);
             this.ctx.closePath();
             this.ctx.fill();
         }
@@ -106,8 +123,8 @@ Ball.prototype.calculateForces = function() {
                                 if(drawForces) {
                                     this.ctx.strokeStyle = "rgba(100,100,100,1)";
                                     this.ctx.beginPath();
-                                    this.ctx.moveTo(this.x, this.y);
-                                    this.ctx.lineTo(object.x, object.y);
+                                    this.ctx.moveTo(this.x, this.ctx.canvas.height - this.y);
+                                    this.ctx.lineTo(object.x, this.ctx.canvas.height - object.y);
                                     this.ctx.stroke();
                                 }
                                 force = -attraction*distsquared;
@@ -140,8 +157,8 @@ Ball.prototype.calculateForces = function() {
                         if(distsquared < (equilibrium*1.25)*(equilibrium*1.25)) { // enable springs close to equilibrium
                             this.ctx.strokeStyle = "rgba(100,100,100,1)";
                             this.ctx.beginPath();
-                            this.ctx.moveTo(this.x, this.y);
-                            this.ctx.lineTo(object.x, object.y);
+                            this.ctx.moveTo(this.x, this.ctx.canvas.height - this.y);
+                            this.ctx.lineTo(object.x, this.ctx.canvas.height - object.y);
                             this.ctx.stroke();
                             distance = Math.sqrt(distsquared);
                             var displacement = distance - equilibrium;
